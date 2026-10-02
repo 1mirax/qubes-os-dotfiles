@@ -3,12 +3,17 @@
  * Install: ~/.config/rofi/config.rasi in dom0.
  * Run:     rofi -show drun
  *
- * The glass needs picom: the window is a 6% white veil, and picom blurs what
- * is behind it. picom also rounds the corners - rofi itself draws a square
- * window. So there is no border here either: picom clips the corners after
- * rofi has drawn, and a border would lose its rounded parts.
+ * Sizes are fuzzel's, measured off a screenshot of fuzzel running the
+ * hyprliquid fuzzel.ini at scale 1:
  *
- * Colours, sizes and padding are fuzzel's (hyprliquid dots/.config/fuzzel).
+ *   window   746 x 454, 3 px border, radius 42
+ *   padding  8 px top and bottom, 24 px left and right (inside the border)
+ *   rows     15, 27 px each, no gaps; the prompt line is one more row
+ *   text     Inter 22 px; icons 20 px; text starts 15 px after the icon
+ *
+ * The glass needs picom: the window is a 6% white veil and picom blurs what
+ * is behind it. rofi draws the border and the rounded corners itself, so
+ * picom has to use the same radius for this window - see docs/rofi.md.
  */
 
 configuration {
@@ -25,7 +30,7 @@ configuration {
     sort: true;
     sorting-method: "fzf";
 
-    /* Sizes below are calibrated for 96 dpi, like fuzzel's dpi-aware=no. */
+    /* 16.5 pt at 96 dpi = 22 px, the size fuzzel draws with dpi-aware=no */
     dpi: 96;
     display-drun: ">";
 }
@@ -40,44 +45,51 @@ configuration {
     hint:      #ffffff50;
     bright:    #ffffffff;
     selection: #ffffff26;
-    counter:   #ffffff60;
+    rim:       #ffffff40;
 
     background-color: transparent;
     text-color: @text;
+    spacing: 0;
 }
 
 window {
     /* Draw with the window's own alpha; picom blurs what is behind it. */
     transparency: "real";
     location: center;
-    /* A fixed square, like fuzzel: the size never follows the number of
-     * matches. Wide enough for "<qube>: <app>" names. */
-    width: 460px;
-    height: 460px;
+    /* Fixed size: it never follows the number of matches. */
+    width: 746px;
+    height: 454px;
     background-color: @veil;
-    border: 0;
-    border-radius: 0;
-    /* fuzzel: horizontal-pad 40, vertical-pad 8 */
-    padding: 8px 40px;
+    border: 3px;
+    border-color: @rim;
+    border-radius: 42px;
+    padding: 8px 24px;
 }
 
-/* rofi's default theme draws dashed separators; none here */
 mainbox, inputbar, listview, message {
     border: 0;
 }
 
 mainbox {
-    spacing: 8px;
     children: [ inputbar, listview ];
 }
 
+/* Same 16 px inset as the rows, so ">" lines up with the icons. */
 inputbar {
-    spacing: 8px;
-    children: [ prompt, entry, num-filtered-rows, textbox-num-sep, num-rows ];
+    /* trimmed to 27 px like the rows below */
+    padding: -1px 16px -2px 16px;
+    children: [ prompt, textbox-prompt-sep, entry ];
 }
 
 prompt {
     text-color: @prompt;
+    expand: false;
+}
+
+/* fuzzel's prompt is "> " - the space before the typed text */
+textbox-prompt-sep {
+    str: " ";
+    expand: false;
 }
 
 entry {
@@ -87,28 +99,18 @@ entry {
     cursor: text;
 }
 
-num-filtered-rows, textbox-num-sep, num-rows {
-    text-color: @counter;
-}
-
-textbox-num-sep {
-    str: "/";
-}
-
 listview {
-    /* as many rows as fit the square; fixed-height keeps the window still
-     * when fewer apps match */
-    lines: 8;
+    lines: 15;
     fixed-height: true;
     scrollbar: false;
-    spacing: 0;
 }
 
-/* Rounded selection inside the window - this is drawn by rofi, not picom.
- * fuzzel: selection-radius 21. */
+/* fuzzel: selection-radius 21 (a 27 px row caps it at half its height).
+ * The negative padding trims the font's full line height (30 px in rofi)
+ * to fuzzel's 27 px row; glyphs are not clipped. */
 element {
-    padding: 4px 10px;
-    spacing: 10px;
+    padding: -1px 16px -2px 16px;
+    spacing: 15px;
     border-radius: 21px;
     cursor: pointer;
 }
@@ -131,7 +133,7 @@ element selected.urgent {
 }
 
 element-icon {
-    size: 1.4em;
+    size: 20px;
     vertical-align: 0.5;
 }
 

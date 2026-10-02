@@ -4,10 +4,12 @@ The fuzzel launcher from [hyprliquid-dotfiles](https://github.com/1mirax/hyprliq
 (`dots/.config/fuzzel`) as rofi in dom0: a 6% white veil over blurred
 background, fuzzel's colours and padding, icons, a rounded selection.
 
-rofi draws a square window. **picom rounds its corners and blurs what is
-behind it** — without picom the launcher is a flat dark box. That is also why
-there is no border: picom clips the corners after rofi draws, and a border
-would lose its rounded parts.
+Sizes are fuzzel's 1:1, measured off a screenshot of fuzzel running the
+hyprliquid `fuzzel.ini`: a 746×454 window with a 3 px `#ffffff40` border and
+42 px corners, 15 rows of 27 px, 22 px text, 20 px icons.
+
+rofi draws the border and the rounded corners. **picom blurs what is behind
+the window** — without picom the launcher is a flat dark box.
 
 The list is dom0's application entries. Qubes creates one per app in every
 qube, named `<qube>: <app>`, so typing "firefox" offers each qube's Firefox.
@@ -36,11 +38,25 @@ to the default sans font.
 
 - Blur must be on (`blur-method = "dual_kawase"` with `backend = "glx"` is the
   good one), and `class_g = 'Rofi'` must not be in `blur-background-exclude`.
-- rofi gets picom's global `corner-radius`. fuzzel used 42 px; on picom 12+ a
-  rule can give rofi its own:
+- **picom must round rofi with the same 42 px.** picom blurs the window's
+  whole area. With a smaller radius (or none) the blur shows past rofi's round
+  corners; with a larger one it cuts into the border. Check your version with
+  `picom --version`, then add one of these:
+
+  picom 12 and newer:
 
   ```
   rules = ( { match = "class_g = 'Rofi'"; corner-radius = 42; } );
+  ```
+
+  If your config has no `rules` yet, note that picom 12 ignores the old
+  per-window options (`rounded-corners-exclude` and friends) once `rules`
+  exists.
+
+  picom 11:
+
+  ```
+  corner-radius-rules = [ "42:class_g = 'Rofi'" ];
   ```
 
 ## Security
