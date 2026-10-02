@@ -228,6 +228,8 @@ The Qubes GUI agent docks every tray icon into a window it creates with a hard-c
 sudo bash install-tray-bg.sh
 ```
 
+Whonix templates have no sudo. Copy the file into the template, then run it as root from dom0: `qvm-run -u root -p <template> "bash /home/user/QubesIncoming/<qube>/install-tray-bg.sh"`.
+
 It installs `python3-xlib` from the template's own repository and adds two files: `/opt/qubes-tray-bg/qubes-tray-bg.py` and `/etc/xdg/autostart/qubes-tray-bg.desktop`. To undo, delete both.
 
 The helper watches the qube's own X server. When the agent docks an icon, it sets that embedder's background to black and makes the icon redraw. A window only counts as an embedder if it sits directly on the root window and holds exactly one child that declares itself a tray icon (`_XEMBED_INFO`). Change `BACKGROUND` in the helper if the bar colour changes.
