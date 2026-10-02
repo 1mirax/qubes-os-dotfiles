@@ -11,7 +11,7 @@ for X11.
 | | |
 |---|---|
 | Bar | polybar in dom0: the waybar layout, with the focused window's qube name in its label colour |
-| Launcher | rofi in dom0: fuzzel's glass look, blurred and rounded by picom |
+| Launcher | rofi in dom0: fuzzel's glass look and sizes 1:1, blurred by picom |
 | Tray | a helper for templates that makes the tray icon background black instead of white |
 
 ```
