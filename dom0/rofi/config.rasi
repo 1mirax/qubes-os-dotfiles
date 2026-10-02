@@ -1,0 +1,139 @@
+/* rofi for Qubes OS dom0 - the hyprliquid fuzzel launcher, rebuilt for X11.
+ *
+ * Install: ~/.config/rofi/config.rasi in dom0.
+ * Run:     rofi -show drun
+ *
+ * The glass needs picom: the window is a 6% white veil, and picom blurs what
+ * is behind it. picom also rounds the corners - rofi itself draws a square
+ * window. So there is no border here either: picom clips the corners after
+ * rofi has drawn, and a border would lose its rounded parts.
+ *
+ * Colours, sizes and padding are fuzzel's (hyprliquid dots/.config/fuzzel).
+ */
+
+configuration {
+    modi: "drun";
+    show-icons: true;
+    icon-theme: "Adwaita";
+
+    /* Name only. The default format adds the generic name in Pango markup,
+     * and app names come from the qubes. */
+    drun-display-format: "{name}";
+    /* What fuzzel searched too: "browser" finds Firefox. */
+    drun-match-fields: "name,generic,comment,categories,keywords";
+    matching: "fuzzy";
+    sort: true;
+    sorting-method: "fzf";
+
+    /* Sizes below are calibrated for 96 dpi, like fuzzel's dpi-aware=no. */
+    dpi: 96;
+    display-drun: ">";
+}
+
+* {
+    /* Installed by the polybar bundle: Inter with tabular digits. */
+    font: "Inter Tab 16.5";
+
+    veil:      #ffffff10;
+    text:      #f5f5f7e6;
+    prompt:    #ffffff80;
+    hint:      #ffffff50;
+    bright:    #ffffffff;
+    selection: #ffffff26;
+    counter:   #ffffff60;
+
+    background-color: transparent;
+    text-color: @text;
+}
+
+window {
+    /* Draw with the window's own alpha; picom blurs what is behind it. */
+    transparency: "real";
+    location: center;
+    /* wide enough for "<qube>: <app>" names */
+    width: 460px;
+    background-color: @veil;
+    border: 0;
+    border-radius: 0;
+    /* fuzzel: horizontal-pad 40, vertical-pad 8 */
+    padding: 8px 40px;
+}
+
+/* rofi's default theme draws dashed separators; none here */
+mainbox, inputbar, listview, message {
+    border: 0;
+}
+
+mainbox {
+    spacing: 8px;
+    children: [ inputbar, listview ];
+}
+
+inputbar {
+    spacing: 8px;
+    children: [ prompt, entry, num-filtered-rows, textbox-num-sep, num-rows ];
+}
+
+prompt {
+    text-color: @prompt;
+}
+
+entry {
+    text-color: @bright;
+    placeholder: "";
+    placeholder-color: @hint;
+    cursor: text;
+}
+
+num-filtered-rows, textbox-num-sep, num-rows {
+    text-color: @counter;
+}
+
+textbox-num-sep {
+    str: "/";
+}
+
+listview {
+    lines: 15;
+    fixed-height: false;
+    scrollbar: false;
+    spacing: 0;
+}
+
+/* Rounded selection inside the window - this is drawn by rofi, not picom.
+ * fuzzel: selection-radius 21. */
+element {
+    padding: 4px 10px;
+    spacing: 10px;
+    border-radius: 21px;
+    cursor: pointer;
+}
+
+element normal.normal,
+element alternate.normal,
+element normal.active,
+element alternate.active,
+element normal.urgent,
+element alternate.urgent {
+    background-color: transparent;
+    text-color: @text;
+}
+
+element selected.normal,
+element selected.active,
+element selected.urgent {
+    background-color: @selection;
+    text-color: @bright;
+}
+
+element-icon {
+    size: 1.4em;
+    vertical-align: 0.5;
+}
+
+element-text {
+    text-color: inherit;
+    vertical-align: 0.5;
+    /* Matched letters, like fuzzel's match colour */
+    highlight: bold #ffffff;
+}
