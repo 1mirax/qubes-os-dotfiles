@@ -17,7 +17,7 @@ fi
 . /etc/os-release
 case " ${ID:-} ${ID_LIKE:-} " in
     *" fedora "*|*" rhel "*)   dnf install -y -q python3-xlib ;;
-    *" debian "*|*" ubuntu "*) apt-get install -y -q python3-xlib ;;
+    *" debian "*|*" ubuntu "*) apt-get update -q && apt-get install -y -q python3-xlib ;;
     *) echo "Unsupported template: ${PRETTY_NAME:-unknown}" >&2; exit 1 ;;
 esac
 
@@ -74,14 +74,15 @@ def run(d):
             return False
 
     def paint(embedder, icon):
-        try:
-            embedder.change_attributes(background_pixel=BACKGROUND)
-            embedder.clear_area()
-            # exposures=True makes the icon redraw itself on the new colour
-            icon.clear_area(exposures=True)
-            d.flush()
-        except error.XError:
-            pass                    # the icon went away meanwhile
+        # These requests don't wait for a reply, so a vanished window is
+        # reported later, not raised here. CatchError swallows exactly that
+        # instead of printing it to the session log.
+        gone = error.CatchError(error.BadWindow)
+        embedder.change_attributes(onerror=gone, background_pixel=BACKGROUND)
+        embedder.clear_area(onerror=gone)
+        # exposures=True makes the icon redraw itself on the new colour
+        icon.clear_area(exposures=True, onerror=gone)
+        d.flush()
 
     def check(win):
         """If win is an embedder holding a tray icon, paint it."""

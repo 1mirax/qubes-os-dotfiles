@@ -25,6 +25,7 @@ Left out on purpose:
 ```
 dom0/build-polybar-dom0.sh    run in a qube with network: builds the bundle (source of truth)
 dom0/update-polybar-dom0.sh   run in dom0: updates config + scripts of an installed bar
+template/install-tray-bg.sh   run as root in a template: dark tray icon background
 docs/polybar.md               this file
 ```
 
@@ -32,7 +33,7 @@ What ends up in dom0:
 
 ```
 ~/.config/polybar/config.ini                main config
-~/.config/polybar/launch.sh                 (re)starts polybar; i3 runs it via exec_always
+~/.config/polybar/launch.sh                 picks the backlight device, (re)starts polybar; i3 runs it via exec_always
 ~/.config/polybar/scripts/qube-window.sh    focused window: qube name + colour, sanitised title
 ~/.config/polybar/scripts/qubes-stats.sh    qubes / CPU / RAM / temp from one long-running xentop
 ~/.config/polybar/scripts/workspaces.py     i3 workspace pill over i3 IPC (Python stdlib only)
@@ -71,7 +72,7 @@ sudo qubes-dom0-update polybar xprop brightnessctl
 
 Read the scripts **in dom0**. If the build qube were compromised, it could show you a clean file there and still send a changed one. What you read in dom0 is what actually runs.
 
-`install-dom0.sh` installs the fonts and the config, keeping backups. It comments out i3's `bar { }` block with a `# [polybar]` prefix, adds `exec_always --no-startup-id ~/.config/polybar/launch.sh`, and shows the diff. Then reload i3 with **Mod+Shift+r**.
+`install-dom0.sh` installs the fonts and the config, keeping backups. It edits the i3 config i3 actually reads (`~/.i3/config` if that exists, otherwise `~/.config/i3/config`, copied from `/etc/i3/config` when missing). It comments out i3's `bar { }` block with a `# [polybar]` prefix, adds `exec_always --no-startup-id ~/.config/polybar/launch.sh`, and shows the diff. Then reload i3 with **Mod+Shift+r**.
 
 **3. Brightness keys.** Under Xfce its power manager handled F5/F6; i3 doesn't. Add this to `~/.config/i3/config`:
 
@@ -134,6 +135,7 @@ dom0 is a VM too, so its `/proc/stat` and `/proc/meminfo` only describe dom0. `x
 
 ### battery.sh
 
+- It uses the first `BAT*` in `/sys/class/power_supply`, or the one given as its argument. Without a battery the module is hidden.
 - It reads sysfs: capacity, status, and `power_now` (or current × voltage).
 - Output: `44% ↓7W`, `↑` while charging, `AC` when plugged in and holding.
 - It sits flush with the right edge, with no padding. When a number gains or loses a digit (`9W` → `10W`), the icons to its left shift by one digit width.
@@ -210,7 +212,25 @@ After an edit, run `polybar-msg cmd restart` or press Mod+Shift+r.
 - **Readings missing:** check that `sudo -n xentop -b -i 1` works in dom0.
 - **Wrong temperature:** list the sensors with `cat /sys/class/hwmon/hwmon*/name`, then set `TEMP_FILE`.
 - **Brightness keys do nothing:** run `xev -event keyboard` and check that F5/F6 produce `XF86MonBrightnessDown/Up`.
-- **White squares in the tray:** that's the Qubes GUI agent's hard-coded white tray background, fixed inside the templates by `install-tray-bg.sh`. See the tray-bg notes.
+- **White squares in the tray:** that's the Qubes GUI agent's hard-coded white tray background. See "Tray icon background" below.
+
+## Backlight
+
+`launch.sh` picks the device from `/sys/class/backlight` the way desktops do (firmware, then platform, then raw) and passes it to polybar as `POLYBAR_BACKLIGHT`. The module and its scroll/click actions both use it. Without a backlight device the module is left out of `modules-right`.
+
+## Tray icon background
+
+The Qubes GUI agent docks every tray icon into a window it creates with a hard-coded white background (`gui-agent/vmside.c`). Most icons are transparent, so they show up as white squares on the black bar. dom0 only gets the finished picture, so this can only be fixed inside the qubes.
+
+`template/install-tray-bg.sh` does that. Run it as root **in a template** (not dom0), then shut the template down and restart the qubes based on it:
+
+```bash
+sudo bash install-tray-bg.sh
+```
+
+It installs `python3-xlib` from the template's own repository and adds two files: `/opt/qubes-tray-bg/qubes-tray-bg.py` and `/etc/xdg/autostart/qubes-tray-bg.desktop`. To undo, delete both.
+
+The helper watches the qube's own X server. When the agent docks an icon, it sets that embedder's background to black and makes the icon redraw. A window only counts as an embedder if it sits directly on the root window and holds exactly one child that declares itself a tray icon (`_XEMBED_INFO`). Change `BACKGROUND` in the helper if the bar colour changes.
 
 ## History: bugs found and fixed
 
@@ -223,6 +243,12 @@ After an edit, run `polybar-msg cmd restart` or press Mod+Shift+r.
 - The reading gaps were uneven, because the padding was per value. It is now one block in front.
 - The battery padding left a visible gap. The battery now sits flush with the edge.
 - The pill was hardly visible on the real screen. It changed from `#101011` to `#18181a`.
+- The installer always edited `~/.config/i3/config`, but i3 reads `~/.i3/config` first when it exists. It now edits the file i3 reads.
+- `intel_backlight` and `BAT0` were hard-coded. Both are now detected.
+- With a non-English locale `%b` is not always three letters, which moved the pill. The clock now uses `locale = en_US.UTF-8`.
+- The xentop click needed `xfce4-terminal`. It falls back to `xterm`.
+- `workspaces.py` exited when an i3 socket broke, not only when polybar went away. Only a broken stdout ends it now.
+- tray-bg: X errors from icons that vanish while docking were printed to the session log. They are caught now. The Debian branch runs `apt-get update` first.
 
 ## Open items
 
@@ -232,6 +258,7 @@ After an edit, run `polybar-msg cmd restart` or press Mod+Shift+r.
 ## Hashes (this version)
 
 ```
-d13ac74ae98c739ca3519555c365a3452377a760f3272f0d8836ddf0d76bdc4f  dom0/build-polybar-dom0.sh
-bda0906649c1e7e3077f07b18105d6837d2877f9a496eec114a8af6cabf7aaa4  dom0/update-polybar-dom0.sh
+44398bbb15de33949a4bc26bf34dfccb713aa21325cd0a52e0e78707ca2b12ed  dom0/build-polybar-dom0.sh
+2b6d91f1a6e4fd7e095e7e8a32549ac25de253a876f01ba91e1f880a1e2ed02f  dom0/update-polybar-dom0.sh
+27fd8a5f2d2330a67e1024075703f2f44adfc709b76345ed40af4a01cc85205e  template/install-tray-bg.sh
 ```

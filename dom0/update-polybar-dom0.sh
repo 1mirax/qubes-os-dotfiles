@@ -88,7 +88,8 @@ font-9 = Inter Tab:pixelsize=13;2
 
 modules-left   = launcher window
 modules-center = stats workspaces clock balance
-modules-right  = tray sep backlight pulseaudio sep battery
+; launch.sh drops "backlight" when the machine has no backlight device
+modules-right  = ${env:POLYBAR_RIGHT:tray sep backlight pulseaudio sep battery}
 fixed-center = true
 
 ; A normal dock window: i3 reserves the space, nothing is drawn over apps.
@@ -122,8 +123,10 @@ exec = ~/.config/polybar/scripts/qubes-stats.sh
 tail = true
 format = <label>%{O10}
 label = %output%
-; xentop is the btop of Qubes: every qube, not just dom0
-click-left = xfce4-terminal --title=xentop -x sudo xentop &
+; xentop is the btop of Qubes: every qube, not just dom0. xterm in case
+; Xfce was removed from dom0. Not i3-sensible-terminal: on Qubes that opens
+; a terminal in the focused qube.
+click-left = (xfce4-terminal --title=xentop -x sudo xentop || xterm -T xentop -e sudo xentop) &
 
 [module/workspaces]
 type = custom/script
@@ -138,6 +141,8 @@ interval = 1
 ; Click for the long form.
 date = %H:%M  ·  %d %b
 date-alt = %A, %d %B
+; English names keep %b at three letters whatever the system locale is
+locale = en_US.UTF-8
 label = %{T7}%date%%{T-}
 format-prefix = %{O8}
 
@@ -167,13 +172,15 @@ format-padding = 2px
 
 [module/backlight]
 type = internal/backlight
-; ls /sys/class/backlight - intel_backlight on the X390
-card = intel_backlight
+; picked by launch.sh from /sys/class/backlight (intel_backlight on the X390)
+card = ${env:POLYBAR_BACKLIGHT:intel_backlight}
 use-actual-brightness = true
 enable-scroll = false
 ; scroll to change, click for full - through brightnessctl, which asks
-; systemd-logind instead of needing write access to /sys
-format = %{O9}%{A4:brightnessctl -q set 5%+:}%{A5:brightnessctl -q set 5%-:}%{A1:brightnessctl -q set 100%:}<ramp>%{A}%{A}%{A}%{O9}
+; systemd-logind instead of needing write access to /sys. Actions run in a
+; shell that inherits POLYBAR_BACKLIGHT from launch.sh. (polybar expands
+; ${env:...} only when it is the whole value, so it can't be used here.)
+format = %{O9}%{A4:brightnessctl -q -d "$POLYBAR_BACKLIGHT" set 5%+:}%{A5:brightnessctl -q -d "$POLYBAR_BACKLIGHT" set 5%-:}%{A1:brightnessctl -q -d "$POLYBAR_BACKLIGHT" set 100%:}<ramp>%{A}%{A}%{A}%{O9}
 ramp-0 = %{T2}@SUN0@%{T-}
 ramp-1 = %{T2}@SUN1@%{T-}
 ramp-2 = %{T2}@SUN2@%{T-}
@@ -194,7 +201,8 @@ click-right = pavucontrol &
 
 [module/battery]
 type = custom/script
-exec = ~/.config/polybar/scripts/battery.sh BAT0
+; first BAT* in /sys/class/power_supply; give BAT1 etc. to pick another
+exec = ~/.config/polybar/scripts/battery.sh
 interval = 5
 label = %{T8}%output%%{T-}
 format-prefix = %{O5}
@@ -218,6 +226,23 @@ cat > "$OUT/polybar/launch.sh" <<'EOF_LAUNCH'
 # Start polybar, replacing a running one. i3 runs this at login and on
 # every reload (exec_always in ~/.config/i3/config).
 set -u
+
+# Backlight device, the way desktops pick it: firmware, then platform, then
+# raw. Without one (a desktop machine) the module is left out.
+card=""
+for type in firmware platform raw; do
+    for d in /sys/class/backlight/*; do
+        { read -r t < "$d/type"; } 2>/dev/null || continue
+        [ "$t" = "$type" ] && { card=${d##*/}; break 2; }
+    done
+done
+if [ -n "$card" ]; then
+    export POLYBAR_BACKLIGHT=$card
+    export POLYBAR_RIGHT="tray sep backlight pulseaudio sep battery"
+else
+    export POLYBAR_RIGHT="tray sep pulseaudio sep battery"
+fi
+
 pkill -u "$(id -u)" -x polybar
 for _ in $(seq 50); do
     pgrep -u "$(id -u)" -x polybar >/dev/null || break
@@ -516,6 +541,15 @@ def button(n, state):
     return f"%{{O2}}{click}{body}%{{A}}%{{O2}}"
 
 
+def emit(line):
+    # A broken stdout means polybar is gone - so are we. Kept apart from the
+    # i3 sockets, where a broken pipe only means i3 restarted.
+    try:
+        print(line, flush=True)
+    except BrokenPipeError:
+        sys.exit(0)
+
+
 def render(query):
     send(query, GET_WORKSPACES)
     _, workspaces = recv(query)
@@ -533,9 +567,9 @@ def render(query):
     buttons = "".join(button(n, state.get(n, "empty"))
                       for n in sorted(set(ALWAYS) | set(state)))
     # The round ends already give the buttons room: no extra padding inside.
-    print(f"%{{F{PILL}}}%{{T3}}{CAP_L}%{{T-}}%{{F-}}%{{B{PILL}}}"
-          f"{buttons}"
-          f"%{{B-}}%{{F{PILL}}}%{{T3}}{CAP_R}%{{T-}}%{{F-}}", flush=True)
+    emit(f"%{{F{PILL}}}%{{T3}}{CAP_L}%{{T-}}%{{F-}}%{{B{PILL}}}"
+         f"{buttons}"
+         f"%{{B-}}%{{F{PILL}}}%{{T3}}{CAP_R}%{{T-}}%{{F-}}")
 
 
 def main():
@@ -551,8 +585,6 @@ def main():
             while True:
                 recv(events)                # what changed does not matter
                 render(query)
-        except BrokenPipeError:
-            sys.exit(0)                     # polybar is gone - so are we
         except (OSError, ConnectionError, ValueError,
                 subprocess.CalledProcessError):
             time.sleep(1)                   # i3 restarting: reconnect
@@ -569,10 +601,14 @@ EOF_WS
 cat > "$OUT/polybar/scripts/battery.sh" <<'EOF_BAT'
 #!/bin/bash
 # Battery, same reading as waybar: "84% ↓7W". Argument: BAT0, BAT1 ...
-# Natural width, flush with the screen edge.
+# (default: the first one there is). Natural width, flush with the screen edge.
 set -u
 
-BAT=/sys/class/power_supply/${1:-BAT0}
+if [ -n "${1:-}" ]; then
+    BAT=/sys/class/power_supply/$1
+else
+    BAT=$(ls -d /sys/class/power_supply/BAT* 2>/dev/null | head -n 1)
+fi
 WARN=20
 CRIT=10
 
