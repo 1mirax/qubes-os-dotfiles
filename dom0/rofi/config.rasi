@@ -50,8 +50,10 @@ window {
     /* Draw with the window's own alpha; picom blurs what is behind it. */
     transparency: "real";
     location: center;
-    /* wide enough for "<qube>: <app>" names */
+    /* A fixed square, like fuzzel: the size never follows the number of
+     * matches. Wide enough for "<qube>: <app>" names. */
     width: 460px;
+    height: 460px;
     background-color: @veil;
     border: 0;
     border-radius: 0;
@@ -94,8 +96,10 @@ textbox-num-sep {
 }
 
 listview {
-    lines: 15;
-    fixed-height: false;
+    /* as many rows as fit the square; fixed-height keeps the window still
+     * when fewer apps match */
+    lines: 8;
+    fixed-height: true;
     scrollbar: false;
     spacing: 0;
 }
