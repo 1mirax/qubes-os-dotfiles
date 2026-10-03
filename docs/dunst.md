@@ -45,6 +45,8 @@ The font, Inter Tab, comes from the polybar bundle.
 
 ## picom
 
+`dom0/picom/picom.conf` in this repository already has the rule below.
+
 dunst draws its own 18 px corners and border; picom should round the dunst
 window with the same 18 px, like rofi's 42:
 

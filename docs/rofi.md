@@ -57,6 +57,8 @@ to the default sans font.
 
 ## picom
 
+`dom0/picom/picom.conf` in this repository already has the rule below.
+
 - Blur must be on (`blur-method = "dual_kawase"` with `backend = "glx"` is the
   good one), and `class_g = 'Rofi'` must not be in `blur-background-exclude`.
 - **picom must round rofi with the same 42 px.** picom blurs the window's

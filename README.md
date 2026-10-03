@@ -33,10 +33,12 @@ dom0/update-polybar-dom0.sh   run in dom0: updates an installed bar
 dom0/rofi/config.rasi         rofi launcher theme for dom0
 dom0/rofi/qubes-menu.py       launcher list: qubes first, then the chosen qube's apps
 dom0/dunst/dunstrc            notifications for dom0
+dom0/picom/picom.conf         blur, corners, shadows and window animations
 template/install-tray-bg.sh   run as root in a template: dark tray icon background
 docs/polybar.md               bar: how it works, install steps, security notes
 docs/rofi.md                  launcher: install steps, picom settings
 docs/dunst.md                 notifications: install steps, picom settings
+docs/picom.md                 compositor: install steps, notes
 ```
 
 ## Install
@@ -45,8 +47,8 @@ dom0 has no network. Everything is built or downloaded in a qube, then copied
 into dom0. **Read every script in dom0 before running it** — a compromised qube
 could show you one file and send another.
 
-Steps are in [docs/polybar.md](docs/polybar.md#install), [docs/rofi.md](docs/rofi.md#install)
-and [docs/dunst.md](docs/dunst.md#install).
+Steps are in [docs/polybar.md](docs/polybar.md#install), [docs/rofi.md](docs/rofi.md#install),
+[docs/dunst.md](docs/dunst.md#install) and [docs/picom.md](docs/picom.md#install).
 
 ## Security
 
