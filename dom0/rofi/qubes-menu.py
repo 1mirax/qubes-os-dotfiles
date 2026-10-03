@@ -23,6 +23,12 @@ import os
 import subprocess
 import sys
 
+# Qubes left out of the first list. By type: "TemplateVM", "StandaloneVM",
+# "AppVM", "DispVM". By name: any qube, e.g. {"sys-net", "sys-usb"}; "dom0"
+# hides dom0's own tools.
+HIDE_TYPES = {"TemplateVM"}
+HIDE_QUBES = set()
+
 APPS_HOME = os.path.expanduser("~/.local/share/applications")
 DATA_DIRS = os.environ.get("XDG_DATA_DIRS", "/usr/local/share:/usr/share")
 DESKTOPS = set(filter(None, os.environ.get("XDG_CURRENT_DESKTOP", "").split(":")))
@@ -117,7 +123,8 @@ def list_qubes():
     for qube, *_ in entries():
         apps[qube or "dom0"] = True
     info = qube_info()
-    names = [q for q in apps if q in info]
+    names = [q for q in apps if q in info
+             and q not in HIDE_QUBES and info[q][0] not in HIDE_TYPES]
     names.sort(key=lambda q: (q == "dom0", ORDER.get(info[q][0], 3), q))
     mode(">")
     for q in names:

@@ -9,6 +9,9 @@ one and the same window lists that qube's apps under their plain names —
 `Firefox`, not `work: Firefox`. `← qubes` at the end of the list goes back,
 Esc closes. `dom0` at the end holds dom0's own tools.
 
+Templates are left out of the qube list. To change what is hidden, edit
+`HIDE_TYPES` and `HIDE_QUBES` at the top of `qubes-menu.py`.
+
 `rofi -show drun` still works too, with every app at once.
 
 Sizes are fuzzel's, in a 454 px square: 3 px `#ffffff40` border, 42 px
