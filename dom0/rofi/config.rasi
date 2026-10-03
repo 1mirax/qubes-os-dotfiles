@@ -40,10 +40,10 @@ configuration {
     /* Installed by the polybar bundle: Inter with tabular digits. */
     font: "Inter Tab 16.5";
 
-    /* Dark glass, the terminal's and mako's #14141a at 72%. fuzzel's white
+    /* Dark glass: the terminal's and mako's #14141a, at 50%. fuzzel's white
      * 6% veil only worked because Hyprland dimmed the desktop behind it;
      * without that, white text on a white page disappears. */
-    veil:      #14141ab8;
+    veil:      #14141a80;
     text:      #f5f5f7e6;
     prompt:    #ffffff80;
     hint:      #ffffff50;
