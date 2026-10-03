@@ -4,31 +4,49 @@ The fuzzel launcher from [hyprliquid-dotfiles](https://github.com/1mirax/hyprliq
 (`dots/.config/fuzzel`) as rofi in dom0: a 6% white veil over blurred
 background, fuzzel's colours and padding, icons, a rounded selection.
 
-Sizes are fuzzel's 1:1, measured off a screenshot of fuzzel running the
-hyprliquid `fuzzel.ini`: a 746×454 window with a 3 px `#ffffff40` border and
-42 px corners, 15 rows of 27 px, 22 px text, 20 px icons.
+It opens on a list of your qubes, each with its coloured cube icon. Pick
+one and the same window lists that qube's apps under their plain names —
+`Firefox`, not `work: Firefox`. `← qubes` at the end of the list goes back,
+Esc closes. `dom0` at the end holds dom0's own tools.
 
-rofi draws the border and the rounded corners. **picom blurs what is behind
-the window** — without picom the launcher is a flat dark box.
+`rofi -show drun` still works too, with every app at once.
 
-The list is dom0's application entries. Qubes creates one per app in every
-qube, named `<qube>: <app>`, so typing "firefox" offers each qube's Firefox.
+Sizes are fuzzel's, in a 454 px square: 3 px `#ffffff40` border, 42 px
+corners, 15 rows of 27 px, 22 px text, 20 px icons. The glass is dark —
+`#14141a` at 72%, like the terminal and mako. fuzzel's white 6% veil only
+worked because Hyprland dimmed the desktop behind it; over a white window
+here it left white text on white.
+
+rofi draws the border and the corners. **picom blurs what is behind the
+window**; without picom the launcher is a flat dark box.
 
 ## Install
 
-1. In dom0:
+1. In a qube with network, get the repository (or `git pull` it):
+
+   ```bash
+   git clone https://github.com/1mirax/qubes-os-dotfiles ~/qubes-os-dotfiles
+   ```
+
+2. In dom0, with `<qube>` being that qube:
 
    ```bash
    sudo qubes-dom0-update rofi
    mkdir -p ~/.config/rofi
-   qvm-run --pass-io <qube> 'cat <path>/qubes-os-dotfiles/dom0/rofi/config.rasi' > ~/.config/rofi/config.rasi
-   less ~/.config/rofi/config.rasi
+   for f in config.rasi qubes-menu.py; do
+       qvm-run --pass-io <qube> "cat /home/user/qubes-os-dotfiles/dom0/rofi/$f" > ~/.config/rofi/$f
+   done
+   chmod 755 ~/.config/rofi/qubes-menu.py
+   less ~/.config/rofi/config.rasi ~/.config/rofi/qubes-menu.py
    ```
 
-2. Bind it in the i3 config (replaces the default dmenu binding):
+   Read both in dom0: `qubes-menu.py` runs there.
+
+3. Try it from a dom0 terminal, then bind it in the i3 config in place of
+   the default `$mod+d` line:
 
    ```
-   bindsym $mod+d exec --no-startup-id rofi -show drun
+   bindsym $mod+d exec --no-startup-id rofi -show qubes -modi "qubes:$HOME/.config/rofi/qubes-menu.py"
    ```
 
 The font, Inter Tab, comes from the polybar bundle. Without it rofi falls back
@@ -61,7 +79,10 @@ to the default sans font.
 
 ## Security
 
-- `drun-display-format` is `{name}` only. App names come from the qubes, and
-  the default format wraps them in Pango markup.
-- rofi runs the entry's `Exec` line in dom0. Qubes writes those lines itself
-  (`qvm-run ... qubes.StartApp+...`); a qube can't change them.
+- App names come from the qubes. They reach rofi as plain text, with markup
+  off, so a name can't restyle the list or fake another qube's colour.
+- The qube list, the cube icons and the `dom0` group come from dom0
+  (qubesadmin and dom0's own menu entries), never from a qube.
+- An app is started with `gio launch` on its menu entry, which runs the
+  entry's `Exec` line. Qubes writes that line itself
+  (`qvm-run ... qubes.StartApp+...`); a qube can't change it.

@@ -1,19 +1,20 @@
 /* rofi for Qubes OS dom0 - the hyprliquid fuzzel launcher, rebuilt for X11.
  *
- * Install: ~/.config/rofi/config.rasi in dom0.
- * Run:     rofi -show drun
+ * Install: ~/.config/rofi/config.rasi and qubes-menu.py in dom0.
+ * Run:     rofi -show qubes -modi "qubes:$HOME/.config/rofi/qubes-menu.py"
+ *          (qubes first, then the chosen qube's apps)
+ *     or:  rofi -show drun   (every app at once, "qube: app" names)
  *
  * Sizes are fuzzel's, measured off a screenshot of fuzzel running the
- * hyprliquid fuzzel.ini at scale 1:
+ * hyprliquid fuzzel.ini at scale 1, in a 454 px square:
  *
- *   window   746 x 454, 3 px border, radius 42
  *   padding  8 px top and bottom, 24 px left and right (inside the border)
  *   rows     15, 27 px each, no gaps; the prompt line is one more row
  *   text     Inter 22 px; icons 20 px; text starts 15 px after the icon
+ *   border   3 px, radius 42
  *
- * The glass needs picom: the window is a 6% white veil and picom blurs what
- * is behind it. rofi draws the border and the rounded corners itself, so
- * picom has to use the same radius for this window - see docs/rofi.md.
+ * rofi draws the border and the rounded corners itself, so picom has to use
+ * the same radius for this window - see docs/rofi.md.
  */
 
 configuration {
@@ -39,7 +40,10 @@ configuration {
     /* Installed by the polybar bundle: Inter with tabular digits. */
     font: "Inter Tab 16.5";
 
-    veil:      #ffffff10;
+    /* Dark glass, the terminal's and mako's #14141a at 72%. fuzzel's white
+     * 6% veil only worked because Hyprland dimmed the desktop behind it;
+     * without that, white text on a white page disappears. */
+    veil:      #14141ab8;
     text:      #f5f5f7e6;
     prompt:    #ffffff80;
     hint:      #ffffff50;
@@ -56,8 +60,8 @@ window {
     /* Draw with the window's own alpha; picom blurs what is behind it. */
     transparency: "real";
     location: center;
-    /* Fixed size: it never follows the number of matches. */
-    width: 746px;
+    /* A fixed square: it never follows the number of matches. */
+    width: 454px;
     height: 454px;
     background-color: @veil;
     border: 3px;
