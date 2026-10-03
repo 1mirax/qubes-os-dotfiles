@@ -1,0 +1,89 @@
+# dunst for Qubes OS dom0 - the hyprliquid mako notifications, rebuilt for X11.
+#
+# Install: ~/.config/dunst/dunstrc in dom0, and start it from i3 before
+# anything sends a notification:
+#     exec --no-startup-id dunst
+#
+# Values are mako's (hyprliquid dots/.config/mako/config): 495 px wide,
+# 21/24 px padding, 3 px border, 18 px corners, the terminal's dark glass.
+# No notification centre and no modes - a notification shows and goes.
+#
+# Notifications from qubes are forwarded to dom0 and shown here, so their
+# text is written by the qube. markup = no shows it as plain text: a qube
+# can't restyle a notification to look like one from dom0.
+
+[global]
+    font = "Inter Tab 16.5"
+
+    # Top right, under the 38 px bar: mako's 15 px margin from the bar and
+    # the screen edge.
+    origin = top-right
+    offset = 15x53
+    width = 495
+    height = 225
+    notification_limit = 4
+
+    padding = 21
+    horizontal_padding = 24
+    text_icon_padding = 24
+    frame_width = 3
+    corner_radius = 18
+    # One sheet of glass: picom blurs the whole dunst window, gaps included,
+    # so separate cards would blur the space between them. Notifications
+    # stack with a thin rule instead.
+    gap_size = 0
+    separator_height = 1
+    separator_color = "#ffffff26"
+
+    # Plain text from qubes, our own bold summary around it.
+    markup = no
+    format = "<b>%s</b>\n%b"
+    alignment = left
+    vertical_alignment = center
+    word_wrap = yes
+    ellipsize = end
+    ignore_newline = no
+    show_age_threshold = -1
+    stack_duplicates = true
+    hide_duplicate_count = false
+    show_indicators = no
+
+    icon_position = left
+    icon_theme = "Adwaita, hicolor"
+    enable_recursive_icon_lookup = true
+    # Not 0: with 0, looking an icon up by name in the theme finds nothing.
+    min_icon_size = 32
+    max_icon_size = 60
+
+    progress_bar = true
+    progress_bar_height = 6
+    progress_bar_frame_width = 0
+    progress_bar_corner_radius = 3
+    highlight = "#ffffff80"
+
+    # mako: left runs the default action, middle clears all, right closes one
+    mouse_left_click = do_action, close_current
+    mouse_middle_click = close_all
+    mouse_right_click = close_current
+
+    sticky_history = no
+    history_length = 0
+    follow = none
+
+[urgency_low]
+    background = "#14141ab8"
+    foreground = "#f5f5f7b3"
+    frame_color = "#ffffff26"
+    timeout = 3
+
+[urgency_normal]
+    background = "#14141ab8"
+    foreground = "#f5f5f7ff"
+    frame_color = "#ffffff40"
+    timeout = 5
+
+[urgency_critical]
+    background = "#2a1416cc"
+    foreground = "#ffffffff"
+    frame_color = "#ff453aff"
+    timeout = 0
