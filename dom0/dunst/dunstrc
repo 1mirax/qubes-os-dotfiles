@@ -1,5 +1,8 @@
 # dunst for Qubes OS dom0 - the hyprliquid mako notifications, rebuilt for X11.
 #
+# For dunst 1.12 and newer (Fedora 41's): offset and height use the
+# (x, y) syntax.
+#
 # Install: ~/.config/dunst/dunstrc in dom0, and start it from i3 before
 # anything sends a notification:
 #     exec --no-startup-id dunst
@@ -18,9 +21,10 @@
     # Top right, under the 38 px bar: mako's 15 px margin from the bar and
     # the screen edge.
     origin = top-right
-    offset = 15x53
+    offset = (15, 53)
     width = 495
-    height = 225
+    # up to 225 px, shorter when the text is: mako's height = 225
+    height = (0, 225)
     notification_limit = 4
 
     padding = 21
