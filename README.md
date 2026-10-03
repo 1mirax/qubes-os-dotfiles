@@ -6,6 +6,18 @@ for X11.
 
 ![polybar](docs/polybar-preview.png)
 
+## Stack
+
+| | | Why this one |
+|---|---|---|
+| Window manager | **i3** | Tiling, officially supported by Qubes: label-coloured borders out of the box. Hyprland and Sway can't run in dom0 (no Wayland there). |
+| Compositor | **picom** | The only one in Fedora with blur, rounded corners and, from v12, animations. |
+| Bar | **polybar** | Has a tray, which Qubes needs for its widgets and qube applets. |
+| Launcher | **rofi** | Runs only while open; script mode makes the qube → app menu. |
+| Notifications | **dunst** | Light, no notification centre, and shows qube text as plain text only. |
+
+Everything is installed from dom0's signed Fedora repositories.
+
 ## What is here
 
 | | |
