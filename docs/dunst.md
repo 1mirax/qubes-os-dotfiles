@@ -24,9 +24,20 @@ Notifications from qubes are forwarded to dom0 and shown by dunst too.
    exec --no-startup-id dunst
    ```
 
-   Only one program can show notifications. The current one, usually
-   `xfce4-notifyd`, starts on the first notification; dunst started first
-   takes its place. For the running session: `pkill xfce4-notifyd; dunst &`.
+   Only one program can show notifications, and `xfce4-notifyd` usually
+   gets there first at login. Keep it from starting, for your user only:
+
+   ```bash
+   systemctl --user mask xfce4-notifyd.service
+   mkdir -p ~/.config/autostart ~/.local/share/dbus-1/services
+   printf '[Desktop Entry]\nHidden=true\n' > ~/.config/autostart/xfce4-notifyd.desktop
+   printf '[D-BUS Service]\nName=org.freedesktop.Notifications\nExec=/usr/bin/dunst\n' \
+     > ~/.local/share/dbus-1/services/org.freedesktop.Notifications.service
+   ```
+
+   The last file makes the first notification start dunst if it isn't
+   running. Log out and back in (or reboot). To undo, `systemctl --user
+   unmask xfce4-notifyd.service` and delete the two files.
 
 3. Test: `notify-send "Hello" "from dom0"`.
 
