@@ -34,7 +34,7 @@ What ends up in dom0:
 ```
 ~/.config/polybar/config.ini                main config
 ~/.config/polybar/launch.sh                 picks the backlight device, (re)starts polybar; i3 runs it via exec_always
-~/.config/polybar/scripts/qube-window.sh    focused window: qube name + colour, sanitised title
+~/.config/polybar/scripts/qube-window.sh    focused window: qube name + colour, program name
 ~/.config/polybar/scripts/qubes-stats.sh    qubes / CPU / RAM / temp from one long-running xentop
 ~/.config/polybar/scripts/workspaces.py     i3 workspace pill over i3 IPC (Python stdlib only)
 ~/.config/polybar/scripts/battery.sh        battery text
@@ -101,15 +101,14 @@ It overwrites the files with its own values, so put any hand tuning into the bui
 
 ### qube-window.sh: focused window
 
-- It is event-driven, with no polling. `xprop -spy -root _NET_ACTIVE_WINDOW` follows focus, and a second `xprop -spy` follows the focused window (`_QUBES_VMNAME`, `_QUBES_LABEL_COLOR`, `_NET_WM_NAME`, `WM_NAME`), so a title change shows up without a focus change.
+Shows the qube name in its label colour, then the **program's name** — `claude-lab  Mozilla Firefox` — not the window title. A title carries page and file names, which shouldn't sit on screen all day, and it can be in any script the bar's font lacks.
+
+- It is event-driven, with no polling. `xprop -spy -root _NET_ACTIVE_WINDOW` follows focus, and a second `xprop -spy` follows the focused window (`_QUBES_VMNAME`, `_QUBES_LABEL_COLOR`, `WM_CLASS`).
 - The **name and colour** come from properties set by dom0's GUI daemon, which a qube cannot change.
-- The **title is untrusted**, because the qube writes it. The script:
-  - strips the real `[qube] ` prefix, and only when it matches the real name;
-  - removes control characters;
-  - cuts the title to 42 characters;
-  - breaks every `%{` into `% {` (see Security below).
+- The **program name** is the window's class (`WM_CLASS`). The GUI daemon puts the qube name in front (`claude-lab:firefox`); that prefix is dropped, only when it matches the real qube name. Common classes get a readable name (`firefox` → `Mozilla Firefox`, `xfce4-terminal` → `Terminal`); add more in the `nice[...]` list at the top of the awk part.
+- The class is set by the qube, so it is untrusted. Only `[A-Za-z0-9 ._-]` of it is printed, at most 32 characters: no polybar tag (`%{...}`) can form.
 - Black-labelled qubes show as `#e8e8ec`, since black is invisible on the bar. dom0 windows show "dom0".
-- Each follower runs in its own process group (`set -m`) and is killed on focus change or TERM. `LC_ALL=C.UTF-8` makes xprop print raw UTF-8 and makes awk count characters.
+- Each follower runs in its own process group (`set -m`) and is killed on focus change or TERM.
 
 ### qubes-stats.sh: qubes, CPU, RAM, temperature
 
@@ -159,9 +158,9 @@ polybar has no rounded corners, so the pill is built from parts:
 
 ## Security model
 
-- **Title injection.** polybar obeys `%{...}` tags anywhere in the text it draws. `%{A1:cmd:}` makes text clickable, and a click runs `cmd` **in dom0**. A compromised qube could put that into its window title. It could also use `%{O-300}` and colour tags to paint a fake label, for example a black "vault" over its real red name. The title is therefore sanitised by breaking every `%{`. This was tested live: a title with `%{A1:touch /tmp/pwned:}` was clicked all over, and nothing ran.
+- **Injection.** polybar obeys `%{...}` tags anywhere in the text it draws. `%{A1:cmd:}` makes text clickable, and a click runs `cmd` **in dom0**. A compromised qube controls its window's title and class, and could also use `%{O-300}` and colour tags to paint a fake label, for example a black "vault" over its real red name. The bar shows only the class, reduced to `[A-Za-z0-9 ._-]`, so no tag can form. (The earlier title-based version broke every `%{` instead; tested live, a title with `%{A1:touch /tmp/pwned:}` was clicked all over and nothing ran.)
 - **`%%` is not an escape in polybar.** Tested: `%%{A1:cmd:}` still registers the action.
-- **The trust indicator comes from dom0.** The qube name and colour come from `_QUBES_VMNAME` and `_QUBES_LABEL_COLOR`, never from the title.
+- **The trust indicator comes from dom0.** The qube name and colour come from `_QUBES_VMNAME` and `_QUBES_LABEL_COLOR`, never from the title or class.
 - **The workspace pill prints integers only.**
 - **Root:** `xentop` and `xl` need root. dom0's user already has passwordless sudo, so this adds nothing. `-n` makes it fail instead of hanging.
 - **No network data enters dom0.**
@@ -260,7 +259,7 @@ The helper watches the qube's own X server. When the agent docks an icon, it set
 ## Hashes (this version)
 
 ```
-44398bbb15de33949a4bc26bf34dfccb713aa21325cd0a52e0e78707ca2b12ed  dom0/build-polybar-dom0.sh
-2b6d91f1a6e4fd7e095e7e8a32549ac25de253a876f01ba91e1f880a1e2ed02f  dom0/update-polybar-dom0.sh
+2503d8fb81f7c25e39f257b572921cd1f56e58a01711d9d93070d4e7f88779e5  dom0/build-polybar-dom0.sh
+228ff68c92eae5636f6a68c53eb15facf9253a93349ee6f3b325527dbb6972fa  dom0/update-polybar-dom0.sh
 27fd8a5f2d2330a67e1024075703f2f44adfc709b76345ed40af4a01cc85205e  template/install-tray-bg.sh
 ```

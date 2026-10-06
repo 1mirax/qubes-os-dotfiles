@@ -374,25 +374,31 @@ EOF_LAUNCH
 # ---------------------------------------------------------------------------
 cat > "$OUT/polybar/scripts/qube-window.sh" <<'EOF_WINDOW'
 #!/bin/bash
-# Focused window: the qube it belongs to, in its label colour, then the title.
+# Focused window: the qube it belongs to, in its label colour, then the name
+# of the program - "Firefox", not the page title.
+#
+# The program name comes from WM_CLASS ("work:firefox" - the GUI daemon puts
+# the qube name in front), never from the title. A title carries page names,
+# file names and whatever else the program is showing, which is not something
+# to keep on screen; it is also free text in any script, while a class is a
+# short ASCII word.
 #
 # Event driven, nothing polls. One xprop follows _NET_ACTIVE_WINDOW on the
-# root window; a second follows the focused window itself, so a title change
-# (a new browser tab) shows up without a focus change.
+# root window; a second follows the focused window itself.
 #
 # SECURITY. The qube name and colour come from _QUBES_VMNAME and
 # _QUBES_LABEL_COLOR, which dom0's GUI daemon sets - a qube cannot change
-# them. The title is written by the qube and is untrusted: polybar obeys
-# "%{...}" tags anywhere in the text it draws, and %{A1:cmd:} would run cmd
-# in dom0 on a click. Every "%{" in the title is broken up before printing.
-# ("%%" is NOT an escape in polybar - tested, it still runs the action.)
+# them. WM_CLASS is set by the qube and is untrusted: polybar obeys "%{...}"
+# tags anywhere in the text it draws, and %{A1:cmd:} would run cmd in dom0
+# on a click. Only [A-Za-z0-9 ._-] of it is ever printed, so no tag can
+# form.
 set -u
 set -m                      # every follower gets its own process group
-export LC_ALL=C.UTF-8       # raw UTF-8 from xprop, character counts in awk
+export LC_ALL=C.UTF-8
 
-MAX_TITLE=42
+MAX_NAME=32
 DOM0_COLOR="#e8e8ec"        # dom0 and black-labelled qubes (black is invisible here)
-TITLE_COLOR="#b9b9c1"
+NAME_COLOR="#b9b9c1"
 
 follower=""
 stop_follower() {
@@ -404,37 +410,47 @@ trap 'stop_follower; exit 0' INT TERM HUP
 
 follow() {
     xprop -notype -spy -id "$1" \
-          _QUBES_VMNAME _QUBES_LABEL_COLOR _NET_WM_NAME WM_NAME 2>/dev/null |
-    awk -v max="$MAX_TITLE" -v dom0="$DOM0_COLOR" -v tcol="$TITLE_COLOR" '
-        # value of a quoted xprop string, with its escaping undone
-        function strval(line,   v) {
-            v = substr(line, index(line, "= \"") + 3)
-            sub(/"$/, "", v)
-            gsub(/\\\\/, "\001", v); gsub(/\\"/, "\"", v); gsub(/\001/, "\\", v)
-            return v
+          _QUBES_VMNAME _QUBES_LABEL_COLOR WM_CLASS 2>/dev/null |
+    awk -v max="$MAX_NAME" -v dom0="$DOM0_COLOR" -v ncol="$NAME_COLOR" '
+        BEGIN {
+            # Classes whose own name reads badly. Keys are lower case.
+            nice["firefox"] = "Mozilla Firefox";  nice["firefox-esr"] = "Mozilla Firefox"
+            nice["navigator"] = "Mozilla Firefox";  nice["tor browser"] = "Tor Browser"
+            nice["xfce4-terminal"] = "Terminal";  nice["gnome-terminal-server"] = "Terminal"
+            nice["qterminal"] = "Terminal";       nice["konsole"] = "Terminal"
+            nice["org.gnome.nautilus"] = "Files"; nice["thunar"] = "Files"
+            nice["pcmanfm-qt"] = "Files";         nice["nemo"] = "Files"
+            nice["keepassxc"] = "KeePassXC";      nice["thunderbird"] = "Thunderbird"
+            nice["code"] = "VS Code";             nice["chromium-browser"] = "Chromium"
+            nice["google-chrome"] = "Chrome";     nice["signal"] = "Signal"
+            nice["telegramdesktop"] = "Telegram"; nice["evince"] = "Documents"
+            nice["libreoffice"] = "LibreOffice"
         }
-        # "PROP = value" when set, "PROP:  not found." when not. Matching the
-        # separator, not the words, keeps a page titled "Not found" working.
-        /^_QUBES_VMNAME = /      { name   = strval($0) }
-        /^_QUBES_VMNAME:/        { name   = "" }
-        /^_QUBES_LABEL_COLOR = / { color  = $3 + 0 }
-        /^_QUBES_LABEL_COLOR:/   { color  = -1 }
-        /^_NET_WM_NAME = /       { ntitle = strval($0) }
-        /^_NET_WM_NAME:/         { ntitle = "" }
-        /^WM_NAME = /            { wtitle = strval($0) }
-        /^WM_NAME:/              { wtitle = "" }
+        # "PROP = value" when set, "PROP:  not found." when not.
+        /^_QUBES_VMNAME = /      { name = $0; sub(/^[^"]*"/, "", name); sub(/"$/, "", name) }
+        /^_QUBES_VMNAME:/        { name = "" }
+        /^_QUBES_LABEL_COLOR = / { color = $3 + 0 }
+        /^_QUBES_LABEL_COLOR:/   { color = -1 }
+        # WM_CLASS = "instance", "class" - the class is the last string
+        /^WM_CLASS = /           { cls = $0; sub(/^.*, "/, "", cls); sub(/"$/, "", cls) }
+        /^WM_CLASS:/             { cls = "" }
         { split($0, f, /[ :]/); seen[f[1]] = 1 }
         {
-            if (length(seen) < 4) next      # wait for the first full set
+            if (length(seen) < 3) next      # wait for the first full set
 
-            t = (ntitle != "") ? ntitle : wtitle
-            # The GUI daemon prefixes titles with "[qube] ". Drop exactly
-            # that prefix, and only when it matches the real qube name.
-            if (name != "" && index(t, "[" name "] ") == 1)
-                t = substr(t, length(name) + 4)
-            gsub(/[\001-\037\177]/, "", t)  # control characters
-            if (length(t) > max) t = substr(t, 1, max - 1) "…"
-            gsub(/%\{/, "% {", t)           # break every polybar tag
+            c = cls
+            # Drop the "qube:" prefix the GUI daemon adds, only when it is
+            # the real qube name.
+            if (name != "" && index(c, name ":") == 1)
+                c = substr(c, length(name) + 2)
+            k = tolower(c)
+            if (k in nice) c = nice[k]
+            else if (k ~ /^libreoffice/) c = "LibreOffice"
+            else {
+                gsub(/[^A-Za-z0-9 ._-]/, "", c)
+                c = toupper(substr(c, 1, 1)) substr(c, 2)
+            }
+            if (length(c) > max) c = substr(c, 1, max)
 
             if (name == "") { label = "dom0"; col = dom0 }
             else {
@@ -442,7 +458,9 @@ follow() {
                 col = (color <= 0) ? dom0 : sprintf("#%06x", color)
             }
             # Qube names may only contain [A-Za-z0-9_.-], no tags possible.
-            print "%{F" col "}%{T5}" label "%{T-}%{F-}%{O10}%{F" tcol "}" t "%{F-}"
+            out = "%{F" col "}%{T5}" label "%{T-}%{F-}"
+            if (c != "") out = out "%{O10}%{F" ncol "}" c "%{F-}"
+            print out
             fflush()
         }'
 }
