@@ -1,8 +1,9 @@
 # dunst for Qubes OS dom0 (hyprliquid look)
 
 The mako notifications from [hyprliquid-dotfiles](https://github.com/1mirax/hyprliquid-dotfiles)
-(`dots/.config/mako`) as dunst in dom0: 495 px wide, top right under the bar,
-3 px border, 18 px corners, the terminal's dark glass blurred by picom. No
+(`dots/.config/mako`) as dunst in dom0, smaller: 380 px wide, top right under
+the bar, at most three at a time plus a "(N more)" line, 2 px border, 18 px
+corners, the terminal's dark glass at 40% blurred by picom. No
 notification centre, no modes, no history.
 
 Notifications from qubes are forwarded to dom0 and shown by dunst too.

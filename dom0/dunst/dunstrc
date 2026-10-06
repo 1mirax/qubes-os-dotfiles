@@ -7,8 +7,9 @@
 # anything sends a notification:
 #     exec --no-startup-id dunst
 #
-# Values are mako's (hyprliquid dots/.config/mako/config): 495 px wide,
-# 21/24 px padding, 3 px border, 18 px corners, the terminal's dark glass.
+# mako's look (hyprliquid dots/.config/mako/config) - border, 18 px
+# corners, the terminal's dark glass - at 40% and in a smaller size, so a
+# burst of notifications doesn't cover half the screen.
 # No notification centre and no modes - a notification shows and goes.
 #
 # Notifications from qubes are forwarded to dom0 and shown here, so their
@@ -16,21 +17,22 @@
 # can't restyle a notification to look like one from dom0.
 
 [global]
-    font = "Inter Tab 16.5"
+    font = "Inter Tab 12.5"
 
     # Top right, under the 38 px bar: mako's 15 px margin from the bar and
     # the screen edge.
     origin = top-right
     offset = (15, 53)
-    width = 495
-    # up to 225 px, shorter when the text is: mako's height = 225
-    height = (0, 225)
+    width = 380
+    # up to 140 px, shorter when the text is
+    height = (0, 140)
+    # Three on screen plus a "(N more)" line, which counts toward the limit.
     notification_limit = 4
 
-    padding = 21
-    horizontal_padding = 24
-    text_icon_padding = 24
-    frame_width = 3
+    padding = 12
+    horizontal_padding = 16
+    text_icon_padding = 14
+    frame_width = 2
     corner_radius = 18
     # One sheet of glass: picom blurs the whole dunst window, gaps included,
     # so separate cards would blur the space between them. Notifications
@@ -57,12 +59,12 @@
     enable_recursive_icon_lookup = true
     # Not 0: with 0, looking an icon up by name in the theme finds nothing.
     min_icon_size = 32
-    max_icon_size = 60
+    max_icon_size = 32
 
     progress_bar = true
-    progress_bar_height = 6
+    progress_bar_height = 4
     progress_bar_frame_width = 0
-    progress_bar_corner_radius = 3
+    progress_bar_corner_radius = 2
     highlight = "#ffffff80"
 
     # mako: left runs the default action, middle clears all, right closes one
@@ -75,19 +77,19 @@
     follow = none
 
 [urgency_low]
-    background = "#14141ab8"
+    background = "#14141a66"
     foreground = "#f5f5f7b3"
     frame_color = "#ffffff26"
     timeout = 3
 
 [urgency_normal]
-    background = "#14141ab8"
+    background = "#14141a66"
     foreground = "#f5f5f7ff"
     frame_color = "#ffffff40"
     timeout = 5
 
 [urgency_critical]
-    background = "#2a1416cc"
+    background = "#2a141666"
     foreground = "#ffffffff"
     frame_color = "#ff453aff"
     timeout = 0
