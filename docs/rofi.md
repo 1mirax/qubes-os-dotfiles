@@ -16,7 +16,7 @@ Templates are left out of the qube list. To change what is hidden, edit
 
 Sizes are fuzzel's, in a 454 px square: 3 px `#ffffff40` border, 42 px
 corners, 15 rows of 27 px, 22 px text, 20 px icons. The glass is dark —
-`#14141a` at 50%, the terminal's and mako's colour. fuzzel's white 6% veil only
+`#14141a` at 40%, the terminal's and mako's colour. fuzzel's white 6% veil only
 worked because Hyprland dimmed the desktop behind it; over a white window
 here it left white text on white.
 
