@@ -209,7 +209,7 @@ font-9 = Inter Tab:pixelsize=13;2
 modules-left   = launcher window
 modules-center = stats workspaces clock balance
 ; launch.sh drops "backlight" when the machine has no backlight device
-modules-right  = ${env:POLYBAR_RIGHT:tray sep backlight pulseaudio sep battery}
+modules-right  = ${env:POLYBAR_RIGHT:tray sep idle backlight pulseaudio sep battery}
 fixed-center = true
 
 ; A normal dock window: i3 reserves the space, nothing is drawn over apps.
@@ -290,6 +290,16 @@ format = %{T10}|%{T-}
 format-foreground = #8b8b93
 format-padding = 2px
 
+; Stay awake: while on, the screen neither blanks nor locks by itself.
+; Closing the lid still powers off (see docs/power.md), so a forgotten
+; switch cannot leave the laptop open. idle.sh refreshes this through IPC.
+[module/idle]
+type = custom/ipc
+hook-0 = ~/.config/polybar/scripts/idle.sh status
+initial = 1
+click-left = ~/.config/polybar/scripts/idle.sh toggle
+format = %{O9}<output>%{O9}
+
 [module/backlight]
 type = internal/backlight
 ; picked by launch.sh from /sys/class/backlight (intel_backlight on the X390)
@@ -358,9 +368,9 @@ for type in firmware platform raw; do
 done
 if [ -n "$card" ]; then
     export POLYBAR_BACKLIGHT=$card
-    export POLYBAR_RIGHT="tray sep backlight pulseaudio sep battery"
+    export POLYBAR_RIGHT="tray sep idle backlight pulseaudio sep battery"
 else
-    export POLYBAR_RIGHT="tray sep pulseaudio sep battery"
+    export POLYBAR_RIGHT="tray sep idle pulseaudio sep battery"
 fi
 
 pkill -u "$(id -u)" -x polybar
@@ -780,6 +790,75 @@ else
     echo "$text"
 fi
 EOF_BAT
+
+# ---------------------------------------------------------------------------
+cat > "$OUT/polybar/scripts/idle.sh" <<'EOF_IDLE'
+#!/bin/bash
+# Stay-awake switch for the bar: the hyprliquid idle inhibitor, for X11.
+#
+#   idle.sh status   print the icon (polybar runs this through IPC)
+#   idle.sh toggle   switch stay-awake on or off
+#   idle.sh hold     the keeper loop itself; started by toggle
+#
+# Qubes can't do this on their own - a video playing in a qube does not keep
+# dom0 awake - so this is the only way to watch a film without the screen
+# locking halfway through.
+#
+# While on: X's own screen saver and DPMS are off, and every 50 s xscreensaver
+# is told there was activity, so its idle timer never runs out. A screen
+# locked by hand stays locked: the keeper skips xscreensaver while it is
+# blanked or locked, instead of waking the password dialog every 50 s.
+#
+# MAX_HOURS switches it off by itself after that many hours; 0 = never.
+# Closing the lid powers the laptop off anyway, so 0 is the default.
+set -u
+
+MAX_HOURS=0
+PIDFILE="${XDG_RUNTIME_DIR:-/tmp}/polybar-idle.pid"
+ICON_ON=$'\xf3\xb0\x92\xb3'     # U+F04B3 sleep-off: "zzz" struck through
+ICON_OFF=$'\xf3\xb0\x92\xb2'    # U+F04B2 sleep: "zzz"
+
+running() { [ -r "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; }
+refresh() { polybar-msg action "#idle.hook.0" >/dev/null 2>&1 || true; }
+say() { command -v notify-send >/dev/null && notify-send -u low "$1" "$2"; }
+
+hold() {
+    echo $$ > "$PIDFILE"
+    trap 'xset s on +dpms 2>/dev/null; rm -f "$PIDFILE"; exit 0' TERM INT HUP
+    xset s off -dpms 2>/dev/null
+    local start=$SECONDS
+    while :; do
+        if command -v xscreensaver-command >/dev/null &&
+           xscreensaver-command -time 2>/dev/null | grep -q 'non-blanked'; then
+            xscreensaver-command -deactivate >/dev/null 2>&1
+        fi
+        if [ "$MAX_HOURS" -gt 0 ] && [ $((SECONDS - start)) -ge $((MAX_HOURS * 3600)) ]; then
+            xset s on +dpms 2>/dev/null; rm -f "$PIDFILE"
+            say "Stay awake: off" "after $MAX_HOURS h"; refresh; exit 0
+        fi
+        sleep 50 & wait $!
+    done
+}
+
+case "${1:-status}" in
+    status)
+        if running; then echo "%{T2}%{F#e8e8ec}$ICON_ON%{F-}%{T-}"
+        else             echo "%{T2}%{F#8b8b93}$ICON_OFF%{F-}%{T-}"; fi ;;
+    toggle)
+        if running; then
+            kill "$(cat "$PIDFILE")" 2>/dev/null
+            for _ in 1 2 3 4 5 6 7 8 9 10; do running || break; sleep 0.1; done
+            say "Stay awake: off" "the screen locks when idle again"
+        else
+            setsid "$0" hold >/dev/null 2>&1 < /dev/null &
+            for _ in 1 2 3 4 5 6 7 8 9 10; do running && break; sleep 0.1; done
+            say "Stay awake: on" "no blanking, no lock until switched off"
+        fi
+        refresh ;;
+    hold) hold ;;
+    *) echo "usage: $(basename "$0") status|toggle" >&2; exit 1 ;;
+esac
+EOF_IDLE
 
 # ---------------------------------------------------------------------------
 cat > "$OUT/install-dom0.sh" <<'EOF_INSTALL'

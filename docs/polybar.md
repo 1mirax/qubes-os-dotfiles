@@ -12,12 +12,11 @@ Rules this project follows: security first, then lightweight, and everything exp
 
 | Left | Centre | Right |
 | --- | --- | --- |
-| Qubes logo (opens the Qubes app menu) · focused window: **qube name in its label colour** + title | qubes running · CPU · RAM · temperature · **workspace pill 1-5** · clock | tray · brightness · volume · battery `44% ↓7W` |
+| Qubes logo (opens the Qubes app menu) · focused window: **qube name in its label colour** + title | qubes running · CPU · RAM · temperature · **workspace pill 1-5** · clock | tray · stay awake · brightness · volume · battery `44% ↓7W` |
 
 Left out on purpose:
 
 - **Network and Bluetooth modules.** dom0 has no network. They live in sys-net / sys-usb, and their applets appear in the tray, tinted in the qube's colour. Reading their state from dom0 would add attack surface just for an icon.
-- **Idle inhibitor.** The screen lock is a security boundary.
 - **Tooltips and hover effects.** polybar has neither.
 
 ## Files
@@ -38,6 +37,7 @@ What ends up in dom0:
 ~/.config/polybar/scripts/qubes-stats.sh    qubes / CPU / RAM / temp from one long-running xentop
 ~/.config/polybar/scripts/workspaces.py     i3 workspace pill over i3 IPC (Python stdlib only)
 ~/.config/polybar/scripts/battery.sh        battery text
+~/.config/polybar/scripts/idle.sh           stay-awake switch (see docs/power.md)
 ~/.local/share/fonts/qubes-polybar/         Inter Tab (Regular, SemiBold), Symbols Nerd Font
 ```
 
@@ -259,7 +259,7 @@ The helper watches the qube's own X server. When the agent docks an icon, it set
 ## Hashes (this version)
 
 ```
-2503d8fb81f7c25e39f257b572921cd1f56e58a01711d9d93070d4e7f88779e5  dom0/build-polybar-dom0.sh
-228ff68c92eae5636f6a68c53eb15facf9253a93349ee6f3b325527dbb6972fa  dom0/update-polybar-dom0.sh
+b8b0d48554beee57b285af26d4844bb4552ea912bc7bcc66b33b7289c3ebd1c0  dom0/build-polybar-dom0.sh
+31411f62bac54ca6e42ad06d1121dc315bdf47c2d1a40b679d3ac45c770faf55  dom0/update-polybar-dom0.sh
 27fd8a5f2d2330a67e1024075703f2f44adfc709b76345ed40af4a01cc85205e  template/install-tray-bg.sh
 ```
