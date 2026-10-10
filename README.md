@@ -35,6 +35,7 @@ dom0/rofi/qubes-menu.py       launcher list: qubes first, then the chosen qube's
 dom0/dunst/dunstrc            notifications for dom0
 dom0/picom/picom.conf         blur, corners, shadows and window animations
 dom0/power/lid-poweroff.conf  close the lid: power off
+dom0/i3/config                i3 config (Qubes' own, with the rice's lines added)
 template/install-tray-bg.sh   run as root in a template: dark tray icon background
 template/vpn/                 VPN qube template: kill switch and DNS (see docs/vpn-killswitch.md)
 docs/polybar.md               bar: how it works, install steps, security notes
