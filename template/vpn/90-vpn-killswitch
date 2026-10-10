@@ -1,0 +1,3 @@
+#!/bin/sh
+nft add rule ip qubes custom-forward oifgroup 1 counter drop
+nft add rule ip6 qubes custom-forward oifgroup 1 counter drop

@@ -1,0 +1,6 @@
+#!/bin/sh
+nft delete table ip vpn-dns 2>/dev/null
+nft add table ip vpn-dns
+nft add chain ip vpn-dns prerouting '{ type nat hook prerouting priority -110; }'
+nft add rule ip vpn-dns prerouting ip daddr '{ 10.139.1.1, 10.139.1.2 }' udp dport 53 dnat to 172.29.172.254
+nft add rule ip vpn-dns prerouting ip daddr '{ 10.139.1.1, 10.139.1.2 }' tcp dport 53 dnat to 172.29.172.254

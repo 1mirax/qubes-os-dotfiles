@@ -36,11 +36,13 @@ dom0/dunst/dunstrc            notifications for dom0
 dom0/picom/picom.conf         blur, corners, shadows and window animations
 dom0/power/lid-poweroff.conf  close the lid: power off
 template/install-tray-bg.sh   run as root in a template: dark tray icon background
+template/vpn/                 VPN qube template: kill switch and DNS (see docs/vpn-killswitch.md)
 docs/polybar.md               bar: how it works, install steps, security notes
 docs/rofi.md                  launcher: install steps, picom settings
 docs/dunst.md                 notifications: install steps, picom settings
 docs/picom.md                 compositor: install steps, notes
 docs/power.md                 lid power-off, idle lock, the stay-awake button
+docs/vpn-killswitch.md        VPN kill switch for Qubes: rules, check, caveats
 ```
 
 ## Install
