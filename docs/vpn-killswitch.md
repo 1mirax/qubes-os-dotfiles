@@ -59,6 +59,13 @@ qubes at it:
 qvm-prefs <client> netvm sys-vpn
 ```
 
+**MTU.** For AmneziaWG / WireGuard set the profile's MTU to 1280 (double-click
+the profile). With the usual 1420 the packets don't fit through mobile
+networks: the tunnel connects but carries nothing. Leave eth0 at 1500;
+lowering it instead makes WireGuard fail with `message too long`. TCP
+protocols such as VLESS need nothing: the template turns on
+`tcp_mtu_probing`, so they find the size themselves.
+
 ## The rules
 
 `/etc/qubes/qubes-firewall.d/90-vpn-killswitch`:

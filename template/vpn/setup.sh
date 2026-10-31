@@ -35,6 +35,13 @@ cat > /etc/apt/apt.conf.d/99throne-core <<EOF
 DPkg::Post-Invoke { "if [ -f $CORE ]; then chown root:root $CORE && chmod u+s $CORE; fi"; };
 EOF
 
+# TCP protocols (VLESS, Trojan, ...) find a working packet size by
+# themselves, also where a mobile network silently drops big packets.
+cat > /etc/sysctl.d/90-mtu-probing.conf <<'EOF'
+net.ipv4.tcp_mtu_probing = 1
+net.ipv4.tcp_base_mss = 1024
+EOF
+
 install -d -m 0755 /etc/qubes/qubes-firewall.d
 install -m 0755 90-vpn-killswitch 91-vpn-dns /etc/qubes/qubes-firewall.d/
 
