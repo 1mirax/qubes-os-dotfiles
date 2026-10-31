@@ -50,10 +50,19 @@ qvm-run sys-vpn '/opt/Throne/Throne -appdata'
 the menu entry does. (Without it Throne tries `/opt/Throne` first, finds it
 read-only and falls back to the same place.)
 
-In Throne: import the profiles, turn on **TUN mode**, leave Throne's own kill
-switch off (the nft rule does the job). If its window is still light, pick
-QDarkStyle in Settings → Basic → Theme; it stays. Then point the client
-qubes at it:
+In Throne (profiles are added from the **Program** menu):
+
+- turn on **TUN mode**;
+- in Preferences → TUN Settings, turn **Auto redirect off**. With it on, the
+  clients' DNS (`10.139.1.1`) is sent out through eth0 instead of the tunnel
+  and the kill switch drops it: IPs work, names don't;
+- leave Throne's own kill switch off (the nft rule does the job);
+- Program → **Start with system** and **Remember last profile** start and
+  connect it whenever sys-vpn starts (`qvm-prefs sys-vpn autostart true`
+  starts the qube at boot).
+
+If its window is still light, pick QDarkStyle in Settings → Basic → Theme.
+Then point the client qubes at it:
 
 ```sh
 qvm-prefs <client> netvm sys-vpn
