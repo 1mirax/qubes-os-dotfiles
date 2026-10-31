@@ -1,29 +1,55 @@
-# VPN kill switch in Qubes (cheat sheet)
+# VPN qube: Throne and a kill switch
+
+A VPN qube (`sys-vpn`) on `debian-13-minimal` with
+[Throne](https://github.com/throneproj/Throne) (VLESS, AmneziaWG and more).
+Other qubes use it as their netvm; if the tunnel drops, their traffic stops
+instead of going out bare.
 
 **Principle:** the forwarded traffic of the client qubes is not allowed to
-leave through eth0 (interface group 1) towards sys-net. Amnezia's own traffic
+leave through eth0 (interface group 1) towards sys-net. Throne's own traffic
 goes through `output`, not `forward`, so it is not blocked.
 
-The rule:
+```
+template/vpn/setup.sh            run as root in the template: installs everything below
+template/vpn/90-vpn-killswitch   the kill switch
+template/vpn/91-vpn-dns          sends the clients' DNS (Qubes' 10.139.1.1/.2) into the tunnel
+```
+
+## Install
+
+In dom0:
 
 ```sh
-nft add rule ip qubes custom-forward oifgroup 1 counter drop
-nft add rule ip6 qubes custom-forward oifgroup 1 counter drop
+qvm-template install debian-13-minimal     # if it isn't there yet
+qvm-clone debian-13-minimal vpn-template
 ```
 
-## Where it lives
+In a qube with network, get this repository and copy the folder over:
 
-In the template for the VPN qubes (`vpn-template`), as root:
-`/etc/qubes/qubes-firewall.d/90-vpn-killswitch` — first line `#!/bin/sh`, then
-the rules, then `chmod +x`. That template is for VPN qubes only, not for
-sys-net or sys-firewall.
-
-The files in this repository:
-
+```sh
+qvm-copy-to-vm vpn-template qubes-os-dotfiles/template/vpn
 ```
-template/vpn/90-vpn-killswitch   the kill switch
-template/vpn/91-vpn-dns          sends the clients' DNS (Qubes' 10.139.1.1/.2) to the VPN's DNS
+
+In dom0 (`<qube>` is the one you copied from):
+
+```sh
+qvm-run -p -u root vpn-template 'sh /home/user/QubesIncoming/<qube>/vpn/setup.sh'
+qvm-shutdown --wait vpn-template
+
+qvm-create --class AppVM --template vpn-template --label blue sys-vpn
+qvm-prefs sys-vpn provides_network true
+qvm-prefs sys-vpn netvm sys-firewall
+qvm-run sys-vpn /opt/Throne/Throne
 ```
+
+In Throne: import the profiles, turn on **TUN mode**, leave Throne's own kill
+switch off (the nft rule does the job). Then point the client qubes at it:
+
+```sh
+qvm-prefs <client> netvm sys-vpn
+```
+
+## The rules
 
 `/etc/qubes/qubes-firewall.d/90-vpn-killswitch`:
 
@@ -33,43 +59,31 @@ nft add rule ip qubes custom-forward oifgroup 1 counter drop
 nft add rule ip6 qubes custom-forward oifgroup 1 counter drop
 ```
 
-`/etc/qubes/qubes-firewall.d/91-vpn-dns`:
+`91-vpn-dns` sends the clients' DNS to `1.1.1.1`. That address goes into the
+tunnel, where Throne answers it with its own DNS; with no tunnel it hits the
+kill switch. Change `DNS=` at the top to use another resolver.
 
-```sh
-#!/bin/sh
-nft delete table ip vpn-dns 2>/dev/null
-nft add table ip vpn-dns
-nft add chain ip vpn-dns prerouting '{ type nat hook prerouting priority -110; }'
-nft add rule ip vpn-dns prerouting ip daddr '{ 10.139.1.1, 10.139.1.2 }' udp dport 53 dnat to 172.29.172.254
-nft add rule ip vpn-dns prerouting ip daddr '{ 10.139.1.1, 10.139.1.2 }' tcp dport 53 dnat to 172.29.172.254
-```
-
-Both files must be executable (`chmod +x`). To see what is actually there, in
-`vpn-template`:
-
-```sh
-cat /etc/qubes/qubes-firewall.d/90-vpn-killswitch /etc/qubes/qubes-firewall.d/91-vpn-dns
-```
+They live in the template, so every qube on it gets them. That template is
+for VPN qubes only, not for sys-net or sys-firewall.
 
 ## Check
 
-In the VPN qube, with sudo:
+In sys-vpn:
 
 ```sh
-nft list chain ip qubes custom-forward
-nft list chain ip6 qubes custom-forward
+sudo nft list chain ip qubes custom-forward
+sudo nft list chain ip6 qubes custom-forward
 ```
 
-One rule in each. Test: ping from a client → turn Amnezia off → the ping
-stops and the rule's `packets` counter grows.
-
-It can be checked at three points: what the internet sees, what goes through
-A, and what sys-net sees. For example: A is connected to server A, B to
-server B, and the client sits behind B.
+One rule in each. Test: ping from a client → turn Throne off → the ping stops
+and the rule's `packets` counter grows. DNS: `getent hosts example.com` in a
+client works with Throne on and fails with it off.
 
 ## Remember
 
-- Run nothing in the VPN qube itself: the rule doesn't protect its own
-  traffic.
-- Amnezia's built-in kill switch is off.
-- It only works with VPNs that create an interface (`amn0`, `wg0`, `tun0`).
+- Run nothing in sys-vpn itself except Throne: the rule doesn't protect the
+  qube's own traffic.
+- It only works with TUN mode (the `throne-tun` interface); proxy mode
+  leaves the clients nothing to route through.
+- An upgrade of Throne in the template keeps TUN working: an apt hook gives
+  the new core root again.

@@ -1,6 +1,10 @@
 #!/bin/sh
+# Clients ask Qubes' DNS (10.139.1.1/.2), which would leave through eth0 and
+# hit the kill switch. Send it into the tunnel instead: Throne catches it
+# there. With no tunnel up it goes nowhere, so it can't leak.
+DNS=1.1.1.1
 nft delete table ip vpn-dns 2>/dev/null
 nft add table ip vpn-dns
 nft add chain ip vpn-dns prerouting '{ type nat hook prerouting priority -110; }'
-nft add rule ip vpn-dns prerouting ip daddr '{ 10.139.1.1, 10.139.1.2 }' udp dport 53 dnat to 172.29.172.254
-nft add rule ip vpn-dns prerouting ip daddr '{ 10.139.1.1, 10.139.1.2 }' tcp dport 53 dnat to 172.29.172.254
+nft add rule ip vpn-dns prerouting ip daddr '{ 10.139.1.1, 10.139.1.2 }' udp dport 53 dnat to $DNS
+nft add rule ip vpn-dns prerouting ip daddr '{ 10.139.1.1, 10.139.1.2 }' tcp dport 53 dnat to $DNS
