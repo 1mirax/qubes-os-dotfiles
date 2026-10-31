@@ -39,8 +39,12 @@ qvm-shutdown --wait vpn-template
 qvm-create --class AppVM --template vpn-template --label blue sys-vpn
 qvm-prefs sys-vpn provides_network true
 qvm-prefs sys-vpn netvm sys-firewall
-qvm-run sys-vpn /opt/Throne/Throne
+qvm-run sys-vpn '/opt/Throne/Throne -appdata'
 ```
+
+`-appdata` keeps Throne's settings in sys-vpn's own `~/.config/Throne`;
+without it they go to `/opt/Throne`, which comes from the template and is
+reset on every reboot. The menu entry already has it.
 
 In Throne: import the profiles, turn on **TUN mode**, leave Throne's own kill
 switch off (the nft rule does the job). Then point the client qubes at it:
