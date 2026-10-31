@@ -37,6 +37,7 @@ dom0/picom/picom.conf         blur, corners, shadows and window animations
 dom0/power/lid-poweroff.conf  close the lid: power off
 dom0/i3/config                i3 config (Qubes' own, with the rice's lines added)
 template/install-tray-bg.sh   run as root in a template: dark tray icon background
+template/dark-theme.sh        run as root in a template: dark GTK and Qt apps
 template/vpn/                 VPN qube template: Throne, kill switch, DNS (see docs/vpn-killswitch.md)
 docs/polybar.md               bar: how it works, install steps, security notes
 docs/rofi.md                  launcher: install steps, picom settings

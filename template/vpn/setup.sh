@@ -1,7 +1,8 @@
 #!/bin/sh
-# VPN template on debian-13-minimal: Throne, kill switch, client DNS.
-# Run as root in the template (not dom0), from the folder holding this file
-# and 90-vpn-killswitch / 91-vpn-dns. See docs/vpn-killswitch.md.
+# VPN template on debian-13-minimal: Throne, kill switch, client DNS, plus
+# the dark theme and the dark tray from the folder above.
+# Run as root in the template (not dom0), with the whole template/ folder of
+# this repository copied over. See docs/vpn-killswitch.md.
 set -eu
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -36,5 +37,8 @@ EOF
 
 install -d -m 0755 /etc/qubes/qubes-firewall.d
 install -m 0755 90-vpn-killswitch 91-vpn-dns /etc/qubes/qubes-firewall.d/
+
+sh ../dark-theme.sh
+bash ../install-tray-bg.sh
 
 echo "Done. Shut the template down, then create the VPN qube from it."
