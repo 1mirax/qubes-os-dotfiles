@@ -1,0 +1,7 @@
+#!/bin/sh
+# TCP from the clients reaches Throne through the qube's own kernel: it comes
+# back in on throne-tun as a new connection, which Qubes' input chain drops.
+# Only Throne writes to throne-tun, so let it in. (UDP and ping don't need
+# this: Throne handles them itself.)
+nft add rule ip qubes custom-input iifname throne-tun accept
+nft add rule ip6 qubes custom-input iifname throne-tun accept

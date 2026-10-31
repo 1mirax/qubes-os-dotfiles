@@ -43,7 +43,7 @@ net.ipv4.tcp_base_mss = 1024
 EOF
 
 install -d -m 0755 /etc/qubes/qubes-firewall.d
-install -m 0755 90-vpn-killswitch 91-vpn-dns /etc/qubes/qubes-firewall.d/
+install -m 0755 90-vpn-killswitch 91-vpn-dns 92-vpn-tun-input /etc/qubes/qubes-firewall.d/
 
 sh ../dark-theme.sh
 bash ../install-tray-bg.sh

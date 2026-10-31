@@ -15,6 +15,7 @@ template/dark-theme.sh           dark GTK and Qt (run by setup.sh, works in any 
 template/install-tray-bg.sh      dark tray icon background (run by setup.sh)
 template/vpn/90-vpn-killswitch   the kill switch
 template/vpn/91-vpn-dns          sends the clients' DNS (Qubes' 10.139.1.1/.2) into the tunnel
+template/vpn/92-vpn-tun-input    lets the clients' TCP back in through throne-tun
 ```
 
 ## Install
@@ -88,6 +89,11 @@ nft add rule ip6 qubes custom-forward oifgroup 1 counter drop
 `91-vpn-dns` sends the clients' DNS to `1.1.1.1`. That address goes into the
 tunnel, where Throne answers it with its own DNS; with no tunnel it hits the
 kill switch. Change `DNS=` at the top to use another resolver.
+
+`92-vpn-tun-input` accepts what comes in on `throne-tun`. Throne hands the
+clients' TCP to the qube's own kernel, so it arrives there as a new incoming
+connection, and Qubes drops those by default: ping and DNS work, but every
+TCP connection hangs. Only Throne writes to `throne-tun`.
 
 They live in the template, so every qube on it gets them. That template is
 for VPN qubes only, not for sys-net or sys-firewall.
